@@ -25,17 +25,38 @@ AuCl/
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # optional for live APIs; not needed for smoke
+cp .env.example .env
+```
 
-# No-op stage walkthrough
-python -m orchestrator.run_pipeline --dry-run
+### Recommended: one key only (Anthropic)
 
-# Key-free end-to-end (fixtures + local TTS + ffmpeg)
+Put your Claude key in `.env`:
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Then run:
+
+```bash
+python -m orchestrator.run_pipeline
+```
+
+Claude uses Anthropic **web search** to research comedy/meme trends (no YouTube/Reddit keys). Stock footage and voice fall back to local ffmpeg/TTS when those keys are empty. Concepts + captions also use Claude.
+
+### Fully key-free demo
+
+```bash
 python -m orchestrator.run_pipeline --smoke
+```
 
-# Review UI
+### Review UI
+
+```bash
 uvicorn dashboard.app:app --reload --port 8000
 ```
+
+Open http://127.0.0.1:8000 — approve/reject clips, then post manually.
 
 ## Cron (optional daily on-demand)
 

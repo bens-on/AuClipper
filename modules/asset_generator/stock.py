@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import aiofiles
 import httpx
 
-from modules.asset_generator.errors import AssetGenerationError, ConfigurationError
+from modules.asset_generator.errors import AssetGenerationError
 from modules.asset_generator.smoke import DEFAULT_SMOKE_DURATION_SEC, generate_smoke_video
 from modules.common.models import AssetItem, AssetKind, Concept
 from modules.common.settings import AppSettings, EnvSecrets
@@ -81,13 +81,32 @@ class StockStrategy:
                     skipped.append("PIXABAY_API_KEY")
 
         if not items:
+            # Single-key mode: no Pexels/Pixabay → generate local stand-in footage.
             if skipped and not (
                 secrets.pexels_api_key or secrets.pixabay_api_key
             ):
-                raise ConfigurationError(
-                    f"Stock providers need API keys ({', '.join(skipped)}). "
-                    "Set them in .env, or call generate_assets(..., smoke=True)."
+                logger.warning(
+                    "No stock API keys (%s); generating local ffmpeg footage",
+                    ", ".join(skipped),
                 )
+                dest = concept_dir / "stock_local.mp4"
+                duration = min(float(concept.target_length_sec), 12.0) or DEFAULT_SMOKE_DURATION_SEC
+                await generate_smoke_video(
+                    dest,
+                    duration_sec=duration,
+                    width=settings.pipeline.output_width,
+                    height=settings.pipeline.output_height,
+                )
+                return [
+                    AssetItem(
+                        kind=AssetKind.VIDEO,
+                        path=str(dest),
+                        source="ffmpeg-local-fallback",
+                        license="generated-local",
+                        duration_sec=duration,
+                        metadata={"fallback": True, "skipped_providers": skipped},
+                    )
+                ]
             raise AssetGenerationError(
                 f"No commercial-use stock video found for query={query!r}"
             )
