@@ -1,0 +1,60 @@
+demographic:
+  age_band: "18-24"
+  region: "US"
+  interests:
+    - comedy
+    - memes
+    - relatable
+
+topic_seeds:
+  - office humor
+  - dating fails
+  - gym culture
+  - student life
+
+pipeline:
+  max_concepts: 3
+  max_signal_topics: 10
+  default_target_length_sec: 30
+  max_length_sec: 90
+  output_width: 1080
+  output_height: 1920
+  whisper_model: base
+  voice_provider: piper  # piper | elevenlabs
+  stock_providers:
+    - pexels
+    - pixabay
+  ai_video_provider: null  # runway | pika | luma — null keeps stub
+
+paths:
+  signals_dir: data/signals
+  concepts_dir: data/concepts
+  assets_dir: data/assets
+  fixtures_dir: data/fixtures
+  output_dir: output
+  sqlite_path: data/aucl.db
+
+reddit:
+  subreddits:
+    - funny
+    - comedyheaven
+    - dankmemes
+    - videos
+
+youtube:
+  region_code: US
+  category_id: "23"  # Comedy
+  max_results: 25
+
+voice:
+  elevenlabs_model: eleven_monolingual_v1
+  piper_voice: en_US-lessac-medium
+
+llm:
+  model: claude-sonnet-4-20250514
+  max_tokens: 4096
+  temperature: 0.8
+
+logging:
+  level: INFO
+  format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"

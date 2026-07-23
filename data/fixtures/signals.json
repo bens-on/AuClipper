@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-07-23T00:00:00+00:00",
+  "demographic": {
+    "age_band": "18-24",
+    "region": "US",
+    "interests": ["comedy", "memes", "relatable"]
+  },
+  "signals": [
+    {
+      "topic": "awkward work Slack messages",
+      "format_type": "AI-voiceover skit",
+      "engagement_score": 92.4,
+      "source": "fixture",
+      "sample_titles": [
+        "When your boss reacts with a skull emoji",
+        "Replying 'sounds good!' to bad news"
+      ]
+    },
+    {
+      "topic": "gym mirror selfies that go wrong",
+      "format_type": "stock-footage + punchline",
+      "engagement_score": 87.1,
+      "source": "fixture",
+      "sample_titles": [
+        "POV: you forgot you're recording",
+        "Leg day excuses ranked"
+      ]
+    },
+    {
+      "topic": "group chat chaos",
+      "format_type": "text-overlay meme",
+      "engagement_score": 81.0,
+      "source": "fixture",
+      "sample_titles": [
+        "The one friend who never reads the chat",
+        "When the plan changes 4 times"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AuCl Review Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef4;
+      --muted: #8b9aab;
+      --accent: #3d9cf0;
+      --ok: #2f9e6b;
+      --warn: #c47a1a;
+      --bad: #c44a4a;
+      --border: #2a3542;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #16202a, var(--bg));
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+    }
+    header p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+    .empty {
+      color: var(--muted);
+      padding: 2rem 0;
+      text-align: center;
+    }
+    article.clip {
+      display: grid;
+      grid-template-columns: minmax(180px, 280px) 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    @media (max-width: 720px) {
+      article.clip { grid-template-columns: 1fr; }
+    }
+    video {
+      width: 100%;
+      max-height: 420px;
+      background: #000;
+      border-radius: 4px;
+    }
+    .meta h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1.05rem;
+    }
+    .status {
+      display: inline-block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .status.approved { color: var(--ok); border-color: var(--ok); }
+    .status.rejected { color: var(--bad); border-color: var(--bad); }
+    .status.regenerate { color: var(--warn); border-color: var(--warn); }
+    .status.pending { color: var(--accent); border-color: var(--accent); }
+    .copy {
+      margin: 0.75rem 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+    .copy strong {
+      display: block;
+      color: var(--text);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .actions button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #243040;
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .actions button:hover { border-color: var(--accent); }
+    .actions button.approve { border-color: var(--ok); }
+    .actions button.reject { border-color: var(--bad); }
+    .actions button.regenerate { border-color: var(--warn); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AuCl Review Dashboard</h1>
+    <p>Approve, reject, or regenerate finished clips before manual posting.</p>
+  </header>
+  <main>
+    {% if not rows %}
+      <p class="empty">No clips yet. Drop concept folders with final.mp4, caption.txt, and hashtags.txt into <code>output/</code>.</p>
+    {% endif %}
+    {% for row in rows %}
+      {% set clip = row.clip %}
+      <article class="clip" id="clip-{{ clip.concept_id }}">
+        <div class="preview">
+          {% if row.media_url %}
+            <video controls preload="metadata" src="{{ row.media_url }}"></video>
+          {% else %}
+            <p class="empty">Preview unavailable</p>
+          {% endif %}
+        </div>
+        <div class="meta">
+          <h2>{{ clip.concept_id }}</h2>
+          <span class="status {{ clip.status.value }}">{{ clip.status.value }}</span>
+          <div class="copy">
+            <strong>Caption</strong>
+            {{ row.caption or "(empty)" }}
+          </div>
+          <div class="copy">
+            <strong>Hashtags</strong>
+            {{ row.hashtags or "(empty)" }}
+          </div>
+          <div class="actions">
+            <form method="post" action="/clips/{{ clip.concept_id }}/approve">
+              <button class="approve" type="submit">Approve</button>
+            </form>
+            <form method="post" action="/clips/{{ clip.concept_id }}/reject">
+              <button class="reject" type="submit">Reject</button>
+            </form>
+            <form method="post" action="/clips/{{ clip.concept_id }}/regenerate">
+              <button class="regenerate" type="submit">Regenerate</button>
+            </form>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-07-23T00:00:00+00:00",
+  "source_signals_path": "data/fixtures/signals.json",
+  "concepts": [
+    {
+      "concept_id": "smoke_slack_skull",
+      "premise": "Original skit: an office worker narrates escalating Slack emoji reactions until a skull emoji ends the thread.",
+      "format": "AI-voiceover skit",
+      "asset_strategy": "tts+stock",
+      "stock_keywords": ["office", "laptop", "typing", "coworker"],
+      "target_length_sec": 18,
+      "voiceover_script": "Monday morning Slack. Boss drops a skull emoji. Nobody knows if we are fired or if the printer just died again.",
+      "beat_sheet": [
+        {
+          "order": 0,
+          "description": "Cold open on a laptop screen",
+          "duration_sec": 5,
+          "visual_cue": "close-up typing on laptop",
+          "voiceover_line": "Monday morning Slack.",
+          "on_screen_text": "MONDAY SLACK"
+        },
+        {
+          "order": 1,
+          "description": "Emoji escalation",
+          "duration_sec": 7,
+          "visual_cue": "confused coworker reaction",
+          "voiceover_line": "Boss drops a skull emoji.",
+          "on_screen_text": "BOSS: 💀"
+        },
+        {
+          "order": 2,
+          "description": "Punchline",
+          "duration_sec": 6,
+          "visual_cue": "empty office hallway",
+          "voiceover_line": "Nobody knows if we are fired or if the printer just died again.",
+          "on_screen_text": "printer or pink slip?"
+        }
+      ]
+    }
+  ]
+}
