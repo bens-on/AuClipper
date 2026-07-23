@@ -13,6 +13,7 @@ import aiofiles
 
 from modules.common.models import SignalSource, SignalsFile, TrendSignal
 from modules.common.settings import ROOT_DIR, AppSettings, EnvSecrets
+from modules.trend_signal.ai_web import collect_ai_web_signals_file
 from modules.trend_signal.errors import ConfigurationError
 from modules.trend_signal.google_trends import fetch_google_trends_signals
 from modules.trend_signal.ranking import rank_signals
@@ -86,28 +87,35 @@ async def _load_fixtures(settings: AppSettings) -> SignalsFile:
 
 
 async def _collect_live(settings: AppSettings, secrets: EnvSecrets) -> SignalsFile:
-    missing: list[str] = []
-    if not secrets.youtube_api_key:
-        missing.append("YOUTUBE_API_KEY")
-    if not secrets.reddit_client_id or not secrets.reddit_client_secret:
-        missing.append("REDDIT_CLIENT_ID/SECRET")
+    """Live collection: YouTube/Reddit if keyed, else Claude web research.
+
+    Preferred single-key path: ``ANTHROPIC_API_KEY`` only (AI web search).
+    Optional: add YouTube/Reddit keys for classic signal APIs.
+    """
+    has_youtube = bool(secrets.youtube_api_key)
+    has_reddit = bool(secrets.reddit_client_id and secrets.reddit_client_secret)
+    has_anthropic = bool(secrets.anthropic_api_key)
 
     hint = (
-        " Set API keys in .env, or call collect_signals(..., use_fixtures=True) "
-        "/ allow_offline=True for offline fixture mode."
+        " Set ANTHROPIC_API_KEY in .env for AI web trend research (recommended), "
+        "or YOUTUBE_API_KEY + Reddit keys, or use --smoke for key-free fixtures."
     )
 
-    # Fail fast before any network I/O when both authenticated sources lack keys.
-    if len(missing) == 2:
-        raise ConfigurationError(
-            f"Missing credentials: {', '.join(missing)}. "
-            f"YouTube and Reddit API keys are required for live collection.{hint}"
-        )
+    # No classic API keys → AI web researcher (one Anthropic key).
+    if not has_youtube and not has_reddit:
+        if not has_anthropic:
+            raise ConfigurationError(
+                "No trend credentials configured. "
+                "Add ANTHROPIC_API_KEY for AI web research (no YouTube/Reddit keys needed)."
+                f"{hint}"
+            )
+        logger.info("Using AI web trend researcher (ANTHROPIC_API_KEY)")
+        return await collect_ai_web_signals_file(settings, secrets)
 
     collected: list[TrendSignal] = []
     errors: list[str] = []
 
-    if secrets.youtube_api_key:
+    if has_youtube:
         try:
             collected.extend(await fetch_youtube_signals(settings, secrets))
         except ConfigurationError as exc:
@@ -118,7 +126,7 @@ async def _collect_live(settings: AppSettings, secrets: EnvSecrets) -> SignalsFi
     else:
         errors.append("YOUTUBE_API_KEY missing — skipped YouTube")
 
-    if secrets.reddit_client_id and secrets.reddit_client_secret:
+    if has_reddit:
         try:
             collected.extend(await fetch_reddit_signals(settings, secrets))
         except ConfigurationError as exc:
@@ -137,13 +145,15 @@ async def _collect_live(settings: AppSettings, secrets: EnvSecrets) -> SignalsFi
             logger.warning("google trends collector failed: %s", exc)
             errors.append(f"Google Trends: {exc}")
 
+    if not collected and has_anthropic:
+        logger.warning(
+            "Classic signal APIs returned nothing (%s); falling back to AI web research",
+            "; ".join(errors) if errors else "empty",
+        )
+        return await collect_ai_web_signals_file(settings, secrets)
+
     if not collected:
         detail = "; ".join(errors) if errors else "no signals returned"
-        if missing:
-            raise ConfigurationError(
-                f"No trend signals collected; missing credentials: {', '.join(missing)}. "
-                f"Details: {detail}.{hint}"
-            )
         raise ConfigurationError(f"No trend signals collected. Details: {detail}.{hint}")
 
     demo = settings.demographic.model_dump()

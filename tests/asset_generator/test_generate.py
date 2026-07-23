@@ -92,15 +92,19 @@ async def test_smoke_tts_stock_produces_manifest(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_stock_requires_keys_without_smoke(tmp_path: Path) -> None:
-    with pytest.raises(ConfigurationError, match="PEXELS_API_KEY|PIXABAY"):
-        await generate_assets(
-            _concept(asset_strategy="stock"),
-            _settings(),
-            EnvSecrets(),
-            tmp_path / "assets",
-            smoke=False,
-        )
+async def test_stock_falls_back_to_local_without_keys(tmp_path: Path) -> None:
+    """Without Pexels/Pixabay keys, stock uses local ffmpeg footage."""
+    assets_root = tmp_path / "assets"
+    manifest = await generate_assets(
+        _concept(asset_strategy="stock"),
+        _settings(),
+        EnvSecrets(),
+        assets_root,
+        smoke=False,
+    )
+    assert manifest.assets
+    assert Path(manifest.assets[0].path).is_file()
+    assert manifest.assets[0].source in {"ffmpeg-local-fallback", "ffmpeg-smoke"}
 
 
 @pytest.mark.asyncio

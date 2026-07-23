@@ -19,6 +19,7 @@ class SignalSource(StrEnum):
     YOUTUBE = "youtube"
     REDDIT = "reddit"
     GOOGLE_TRENDS = "google_trends"
+    AI_WEB = "ai_web"
     FIXTURE = "fixture"
 
 

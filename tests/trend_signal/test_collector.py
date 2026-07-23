@@ -70,7 +70,7 @@ async def test_collect_signals_fixtures(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_collect_signals_missing_keys_raises() -> None:
     settings = _settings()
-    with pytest.raises(ConfigurationError, match="Missing credentials|YOUTUBE_API_KEY"):
+    with pytest.raises(ConfigurationError, match="ANTHROPIC_API_KEY|No trend credentials"):
         await collect_signals(settings, EnvSecrets(), Path("/tmp/aucl_nope_signals.json"))
 
 
