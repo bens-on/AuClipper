@@ -110,14 +110,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        app.state.db_path = resolved_db
-        app.state.output_dir = resolved_output
-        await init_db(resolved_db)
-        if sync_on_startup:
-            await sync_filesystem_clips(resolved_db, resolved_output)
+        await init_db(app.state.db_path)
+        if app.state.sync_on_startup:
+            await sync_filesystem_clips(app.state.db_path, app.state.output_dir)
         yield
 
     app = FastAPI(title="AuCl Review Dashboard", lifespan=lifespan)
+    app.state.db_path = resolved_db
+    app.state.output_dir = resolved_output
+    app.state.sync_on_startup = sync_on_startup
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request) -> HTMLResponse:
