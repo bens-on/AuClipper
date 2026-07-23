@@ -59,29 +59,35 @@ class StockStrategy:
         query = " ".join(keywords[:4]) or concept.premise[:80]
 
         items: list[AssetItem] = []
+        skipped: list[str] = []
         async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
             if "pexels" in providers:
-                if not secrets.pexels_api_key:
-                    raise ConfigurationError(
-                        "PEXELS_API_KEY missing. Set it in .env, or call generate_assets(..., smoke=True)."
+                if secrets.pexels_api_key:
+                    items.extend(
+                        await self._from_pexels(
+                            client, secrets.pexels_api_key, query, concept_dir
+                        )
                     )
-                items.extend(
-                    await self._from_pexels(
-                        client, secrets.pexels_api_key, query, concept_dir
-                    )
-                )
+                else:
+                    skipped.append("PEXELS_API_KEY")
             if "pixabay" in providers and not items:
-                if not secrets.pixabay_api_key:
-                    raise ConfigurationError(
-                        "PIXABAY_API_KEY missing. Set it in .env, or call generate_assets(..., smoke=True)."
+                if secrets.pixabay_api_key:
+                    items.extend(
+                        await self._from_pixabay(
+                            client, secrets.pixabay_api_key, query, concept_dir
+                        )
                     )
-                items.extend(
-                    await self._from_pixabay(
-                        client, secrets.pixabay_api_key, query, concept_dir
-                    )
-                )
+                else:
+                    skipped.append("PIXABAY_API_KEY")
 
         if not items:
+            if skipped and not (
+                secrets.pexels_api_key or secrets.pixabay_api_key
+            ):
+                raise ConfigurationError(
+                    f"Stock providers need API keys ({', '.join(skipped)}). "
+                    "Set them in .env, or call generate_assets(..., smoke=True)."
+                )
             raise AssetGenerationError(
                 f"No commercial-use stock video found for query={query!r}"
             )
