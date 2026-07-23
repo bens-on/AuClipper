@@ -117,19 +117,19 @@ async def _process_concept(
             whisper_model=settings.pipeline.whisper_model,
         )
 
-        concept_out = Path(output_root) / concept_id
-        concept_out.mkdir(parents=True, exist_ok=True)
         logger.info("concept=%s stage=formatter.video", concept_id)
+        # format_for_reels writes to output_root/{concept_id}/final.mp4
         paths = await format_for_reels(
             roughcut_path,
             concept,
-            concept_out,
+            Path(output_root),
             caption_cues=cues,
             width=settings.pipeline.output_width,
             height=settings.pipeline.output_height,
             max_length_sec=float(settings.pipeline.max_length_sec),
         )
         final_mp4 = Path(paths["final_mp4"])
+        concept_out = final_mp4.parent
 
         logger.info("concept=%s stage=formatter.copy", concept_id)
         caption, hashtags = await generate_caption_and_hashtags(
