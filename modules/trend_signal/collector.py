@@ -92,39 +92,53 @@ async def _collect_live(settings: AppSettings, secrets: EnvSecrets) -> SignalsFi
     if not secrets.reddit_client_id or not secrets.reddit_client_secret:
         missing.append("REDDIT_CLIENT_ID/SECRET")
 
+    hint = (
+        " Set API keys in .env, or call collect_signals(..., use_fixtures=True) "
+        "/ allow_offline=True for offline fixture mode."
+    )
+
+    # Fail fast before any network I/O when both authenticated sources lack keys.
+    if len(missing) == 2:
+        raise ConfigurationError(
+            f"Missing credentials: {', '.join(missing)}. "
+            f"YouTube and Reddit API keys are required for live collection.{hint}"
+        )
+
     collected: list[TrendSignal] = []
     errors: list[str] = []
 
-    # YouTube — required unless we somehow have other sources; still try others.
-    try:
-        collected.extend(await fetch_youtube_signals(settings, secrets))
-    except ConfigurationError as exc:
-        errors.append(str(exc))
-    except Exception as exc:
-        logger.exception("youtube collector failed")
-        errors.append(f"YouTube: {exc}")
+    if secrets.youtube_api_key:
+        try:
+            collected.extend(await fetch_youtube_signals(settings, secrets))
+        except ConfigurationError as exc:
+            errors.append(str(exc))
+        except Exception as exc:
+            logger.exception("youtube collector failed")
+            errors.append(f"YouTube: {exc}")
+    else:
+        errors.append("YOUTUBE_API_KEY missing — skipped YouTube")
 
-    try:
-        collected.extend(await fetch_reddit_signals(settings, secrets))
-    except ConfigurationError as exc:
-        errors.append(str(exc))
-    except Exception as exc:
-        logger.exception("reddit collector failed")
-        errors.append(f"Reddit: {exc}")
+    if secrets.reddit_client_id and secrets.reddit_client_secret:
+        try:
+            collected.extend(await fetch_reddit_signals(settings, secrets))
+        except ConfigurationError as exc:
+            errors.append(str(exc))
+        except Exception as exc:
+            logger.exception("reddit collector failed")
+            errors.append(f"Reddit: {exc}")
+    else:
+        errors.append("REDDIT_CLIENT_ID/SECRET missing — skipped Reddit")
 
-    try:
-        collected.extend(await fetch_google_trends_signals(settings))
-    except Exception as exc:
-        # pytrends has no API key; treat hard failures as soft.
-        logger.warning("google trends collector failed: %s", exc)
-        errors.append(f"Google Trends: {exc}")
+    # pytrends has no API key; only enrich when at least one auth source contributed.
+    if collected:
+        try:
+            collected.extend(await fetch_google_trends_signals(settings))
+        except Exception as exc:
+            logger.warning("google trends collector failed: %s", exc)
+            errors.append(f"Google Trends: {exc}")
 
     if not collected:
         detail = "; ".join(errors) if errors else "no signals returned"
-        hint = (
-            " Set API keys in .env, or call collect_signals(..., use_fixtures=True) "
-            "/ allow_offline=True for offline fixture mode."
-        )
         if missing:
             raise ConfigurationError(
                 f"No trend signals collected; missing credentials: {', '.join(missing)}. "

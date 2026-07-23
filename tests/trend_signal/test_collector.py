@@ -70,7 +70,7 @@ async def test_collect_signals_fixtures(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_collect_signals_missing_keys_raises() -> None:
     settings = _settings()
-    with pytest.raises(ConfigurationError, match="YOUTUBE_API_KEY|credentials|No trend"):
+    with pytest.raises(ConfigurationError, match="Missing credentials|YOUTUBE_API_KEY"):
         await collect_signals(settings, EnvSecrets(), Path("/tmp/aucl_nope_signals.json"))
 
 
@@ -202,21 +202,32 @@ async def test_youtube_fetch_builds_api() -> None:
         ]
     }
 
-    videos_list = MagicMock()
-    videos_list.list.return_value.execute.side_effect = [popular_resp, details_resp]
-    search_list = MagicMock()
-    search_list.list.return_value.execute.return_value = search_resp
+    def _execute_videos(**kwargs: Any) -> dict[str, Any]:
+        if kwargs.get("chart") == "mostPopular":
+            return popular_resp
+        return details_resp
+
+    videos_resource = MagicMock()
+    videos_resource.list.side_effect = lambda **kw: MagicMock(
+        execute=lambda: _execute_videos(**kw)
+    )
+    search_resource = MagicMock()
+    search_resource.list.side_effect = lambda **_kw: MagicMock(
+        execute=lambda: search_resp
+    )
 
     service = MagicMock()
-    service.videos.return_value = videos_list
-    service.search.return_value = search_list
+    service.videos.return_value = videos_resource
+    service.search.return_value = search_resource
     mock_build = MagicMock(return_value=service)
 
     with patch("googleapiclient.discovery.build", mock_build):
-        signals = await yt_mod.fetch_youtube_signals(_settings(), _secrets())
+        sync_signals = yt_mod._fetch_youtube_sync(_settings(), "yt-test-key")
+        async_signals = await yt_mod.fetch_youtube_signals(_settings(), _secrets())
 
-    assert signals
-    assert all(s.source == SignalSource.YOUTUBE for s in signals)
+    assert sync_signals
+    assert async_signals
+    assert all(s.source == SignalSource.YOUTUBE for s in sync_signals)
     mock_build.assert_called()
 
 
@@ -238,6 +249,9 @@ async def test_reddit_velocity() -> None:
             return [FakePost()]
 
     class FakeReddit:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+            pass
+
         def subreddit(self, name: str) -> FakeSub:  # noqa: ARG002
             return FakeSub()
 
