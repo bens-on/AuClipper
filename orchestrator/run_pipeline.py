@@ -205,14 +205,24 @@ async def run_full(
 
     logger.info("stage=concept_planner")
     if smoke:
-        # Prefer fixture concepts for deterministic smoke; still go through planner offline
-        concepts: ConceptsFile = await plan_concepts(
-            signals,
-            settings,
-            secrets,
-            concepts_path,
-            offline=True,
-        )
+        # Deterministic smoke: load fixture concepts (planner offline remains available
+        # for unit tests / key-free concept generation without fixtures).
+        fixture_concepts = Path(paths.fixtures_dir) / "concepts.json"
+        if fixture_concepts.is_file():
+            async with aiofiles.open(fixture_concepts, "r", encoding="utf-8") as fh:
+                raw = await fh.read()
+            concepts = ConceptsFile.model_validate_json(raw)
+            async with aiofiles.open(concepts_path, "w", encoding="utf-8") as fh:
+                await fh.write(concepts.model_dump_json(indent=2) + "\n")
+            logger.info("stage=concept_planner source=fixture path=%s", fixture_concepts)
+        else:
+            concepts = await plan_concepts(
+                signals,
+                settings,
+                secrets,
+                concepts_path,
+                offline=True,
+            )
     else:
         concepts = await plan_concepts(
             signals,
