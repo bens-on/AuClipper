@@ -13,7 +13,7 @@ from modules.asset_generator.ai_voice import AIVoiceStrategy
 from modules.asset_generator.errors import ConfigurationError
 from modules.asset_generator.protocol import AssetStrategy
 from modules.asset_generator.stock import StockStrategy
-from modules.common.models import AssetItem, Concept
+from modules.common.models import AssetItem, AssetsManifest, Concept
 from modules.common.settings import AppSettings, EnvSecrets
 
 logger = logging.getLogger(__name__)
